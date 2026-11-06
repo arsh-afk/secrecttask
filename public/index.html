@@ -260,17 +260,31 @@
         <!-- ========================================== -->
         <section id="view-rankings" class="view-panel hidden space-y-6 max-w-4xl mx-auto w-full">
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <h2 class="text-2xl font-bold font-mono text-slate-100 flex items-center gap-2">
-                            <i class="fa-solid fa-trophy text-amber-400"></i> FASTEST COMPLETION RANKINGS
+                            <i class="fa-solid fa-trophy text-amber-400"></i> STEALTH LEADERBOARD
                         </h2>
-                        <p class="text-sm text-slate-400 mt-1">Operatives ranked by speed of mission completion after distribution.</p>
+                        <p class="text-sm text-slate-400 mt-1">Operatives ranked by mission speed & stealth preservation.</p>
                     </div>
-                    <button onclick="loadRankings()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-2 rounded-lg text-xs font-mono transition-colors flex items-center gap-1.5">
-                        <i class="fa-solid fa-rotate"></i> Refresh
+                    <button onclick="loadRankings()" class="self-start sm:self-auto bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-2 rounded-lg text-xs font-mono transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate"></i> Refresh Rankings
                     </button>
                 </div>
+
+                <!-- Stealth Penalty Rules Banner -->
+                <div class="bg-slate-950/70 border border-amber-500/30 rounded-xl p-4 text-xs font-mono text-slate-300 flex items-start gap-3">
+                    <div class="text-amber-400 text-base mt-0.5">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="font-bold text-amber-300 uppercase tracking-wide">Stealth Weighting & Compromise Penalty Active</div>
+                        <p class="text-slate-400 text-[11px] leading-relaxed">
+                            <strong>Formula:</strong> Adjusted Time = Raw Completion Time + (+60s penalty per operative who deduced your task). If your cover is blown on the deduction tab, your ranking drops!
+                        </p>
+                    </div>
+                </div>
+
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs font-mono">
                         <thead>
@@ -278,13 +292,15 @@
                                 <th class="p-3">Rank</th>
                                 <th class="p-3">Operative</th>
                                 <th class="p-3">Problem #</th>
-                                <th class="p-3">Completion Time</th>
-                                <th class="p-3">Status</th>
+                                <th class="p-3">Raw Time</th>
+                                <th class="p-3">Compromised</th>
+                                <th class="p-3">Adjusted Time</th>
+                                <th class="p-3 text-right">Status</th>
                             </tr>
                         </thead>
                         <tbody id="rankings-table-body" class="divide-y divide-slate-800/60 text-slate-300">
                             <tr>
-                                <td colspan="5" class="p-8 text-center text-slate-600">
+                                <td colspan="7" class="p-8 text-center text-slate-600">
                                     No completions recorded yet. Rankings appear after agents mark tasks complete.
                                 </td>
                             </tr>
@@ -922,44 +938,63 @@
             const tbody = document.getElementById('rankings-table-body');
             tbody.innerHTML = '';
 
-            if (!list.length) {
-                tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-600 font-mono">No completions recorded yet.</td></tr>';
+            if (!list || !list.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-600 font-mono">No completions recorded yet. Rankings appear after agents mark tasks complete.</td></tr>';
                 return;
             }
 
             list.forEach((row, idx) => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-900/50 transition-colors";
+                const isCurrent = row.player === localState.activePlayer;
+                tr.className = `hover:bg-slate-900/60 transition-colors border-b border-slate-800/40 ${isCurrent ? 'bg-emerald-950/20' : ''}`;
 
                 let rankIcon = '';
                 if (idx === 0) rankIcon = '🥇';
                 else if (idx === 1) rankIcon = '🥈';
                 else if (idx === 2) rankIcon = '🥉';
-                else rankIcon = `#${idx + 1}`;
+                else rankIcon = `<span class="text-slate-400 font-bold">#${idx + 1}</span>`;
 
                 const status = row.assignment ? row.assignment.status : 'unknown';
                 let badge = `<span class="px-2 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/40">COMPLETED</span>`;
                 if (status === 'verified') badge = `<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">VERIFIED ✅</span>`;
 
+                let compromiseBadge = '';
+                if (!row.timesCompromised || row.timesCompromised === 0) {
+                    compromiseBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
+                        <i class="fa-solid fa-ghost text-[9px]"></i> 0 (Undetected)
+                    </span>`;
+                } else {
+                    const who = (row.detectedBy && row.detectedBy.length) ? `Deduced by: ${row.detectedBy.join(', ')}` : 'Task deduced';
+                    compromiseBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-rose-500/15 text-rose-300 border border-rose-500/30 inline-flex items-center gap-1 font-bold" title="${esc(who)}">
+                        <i class="fa-solid fa-eye text-[9px] text-rose-400"></i> ${row.timesCompromised}x (+${formatTime(row.penaltyMs)})
+                    </span>`;
+                }
+
                 tr.innerHTML = `
-                    <td class="p-3 font-bold text-lg">${rankIcon}</td>
-                    <td class="p-3 font-semibold text-slate-200">${esc(row.player)}</td>
+                    <td class="p-3 font-bold text-base">${rankIcon}</td>
+                    <td class="p-3 font-semibold text-slate-200 ${isCurrent ? 'text-emerald-400 font-bold' : ''}">
+                        ${esc(row.player)} ${isCurrent ? '<span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded ml-1 font-mono">YOU</span>' : ''}
+                    </td>
                     <td class="p-3 text-emerald-400 font-bold">${row.assignment ? row.assignment.id : '—'}</td>
-                    <td class="p-3 text-slate-300">${formatTime(row.ms)}</td>
-                    <td class="p-3">${badge}</td>`;
+                    <td class="p-3 text-slate-400">${formatTime(row.rawMs !== undefined ? row.rawMs : row.ms)}</td>
+                    <td class="p-3">${compromiseBadge}</td>
+                    <td class="p-3 text-emerald-300 font-bold font-mono text-sm">${formatTime(row.adjustedMs !== undefined ? row.adjustedMs : row.ms)}</td>
+                    <td class="p-3 text-right">${badge}</td>`;
                 tbody.appendChild(tr);
             });
         }
 
         function formatTime(ms) {
+            if (!ms && ms !== 0) return '0s';
             if (ms < 1000) return ms + 'ms';
             const s = Math.floor(ms / 1000);
             if (s < 60) return s + 's';
             const m = Math.floor(s / 60);
             const rem = s % 60;
-            if (m < 60) return m + 'm ' + rem + 's';
+            if (m < 60) return m + 'm ' + (rem > 0 ? rem + 's' : '');
             const h = Math.floor(m / 60);
-            return h + 'h ' + (m % 60) + 'm';
+            const remM = m % 60;
+            return h + 'h ' + (remM > 0 ? remM + 'm' : '');
         }
 
         // ==========================================
@@ -969,6 +1004,10 @@
             renderPlayerPortal();
             renderAdminPortal();
             renderDeductionLog();
+            const rankingsPanel = document.getElementById('view-rankings');
+            if (rankingsPanel && !rankingsPanel.classList.contains('hidden')) {
+                loadRankings();
+            }
         }
 
         function showToast(message, type = 'info') {

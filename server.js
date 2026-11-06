@@ -198,18 +198,39 @@ function broadcastOnline() {
 }
 
 // ──────────────────────────────────────────────
-// REST: Rankings
+// REST: Rankings (Time + Deduction Penalty)
 // ──────────────────────────────────────────────
 app.get('/api/rankings', (_req, res) => {
   if (!gameState.distributedAt) return res.json([]);
 
+  const PENALTY_PER_DETECTION_MS = 60 * 1000; // +60s penalty per person who deduced your task
+
   const rankings = Object.entries(gameState.completionTimes)
-    .map(([player, time]) => ({
-      player,
-      ms: time - gameState.distributedAt,
-      assignment: gameState.assignments[player]
-    }))
-    .sort((a, b) => a.ms - b.ms);
+    .map(([player, time]) => {
+      const rawMs = time - gameState.distributedAt;
+
+      // Unique operatives who deduced this player's task
+      const detectedBy = new Set(
+        gameState.deductionsLog
+          .filter(log => log.target === player && log.success)
+          .map(log => log.guesser)
+      );
+
+      const timesCompromised = detectedBy.size;
+      const penaltyMs = timesCompromised * PENALTY_PER_DETECTION_MS;
+      const adjustedMs = rawMs + penaltyMs;
+
+      return {
+        player,
+        rawMs,
+        timesCompromised,
+        penaltyMs,
+        adjustedMs,
+        detectedBy: [...detectedBy],
+        assignment: gameState.assignments[player]
+      };
+    })
+    .sort((a, b) => a.adjustedMs - b.adjustedMs);
 
   res.json(rankings);
 });
