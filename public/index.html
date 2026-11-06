@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Warden Game – Lobby / Player</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js" defer></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #lobby, #game { border: 1px solid #ccc; padding: 12px; margin-bottom: 20px; }
+    #players { max-height: 200px; overflow-y: auto; }
+    .player { padding: 4px; }
+    .highlight { background: #e0f7ff; }
+  </style>
+</head>
+<body>
+  <h1>🛡️ Warden Game – Lobby</h1>
+
+  <section id="lobby">
+    <h2>Players (fuzzy search)</h2>
+    <input id="search" placeholder="Search players..." oninput="filterPlayers()" />
+    <div id="players"></div>
+    <button onclick="refreshLobby()">Refresh</button>
+  </section>
+
+  <section id="game">
+    <h2>Game Area</h2>
+    <p>Score: <span id="score">0</span></p>
+    <button onclick="earnPoint()">Earn point</button>
+    <button onclick="completeGame()">✅ Finish</button>
+    <p id="status"></p>
+  </section>
+
+  <section id="rankingLink">
+    <a href="ranking.html">View Fastest Completion Rankings</a>
+  </section>
+</body>
+</html>
+

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Warden Game – Admin Console</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="admin.js" defer></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #log { height: 300px; overflow-y: auto; background:#f5f5f5; padding:8px; border:1px solid #ccc; }
+    input, button { margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <h1>🧙‍♂️ Warden Admin Console</h1>
+
+  <section id="broadcast">
+    <h2>Broadcast message</h2>
+    <input id="msg" placeholder="Message to all players" />
+    <button onclick="broadcast()">Send</button>
+  </section>
+
+  <section id="kick">
+    <h2>Kick player</h2>
+    <input id="kickId" placeholder="User ID to kick" />
+    <button onclick="kick()">Kick</button>
+  </section>
+
+  <section id="logSection">
+    <h2>Live Log</h2>
+    <pre id="log"></pre>
+  </section>
+</body>
+</html>
+
