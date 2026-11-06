@@ -1,18 +1,14 @@
 {
   "name": "mylittleeye",
   "version": "1.0.0",
-  "description": "Warden game server with admin console and player persistence",
-  "type": "module",
+  "description": "Warden game – Operation Stealth Task Distributor",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "author": "",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
-    "socket.io": "^4.7.5",
-    "cookie-parser": "^1.4.6"
+    "socket.io": "^4.7.5"
   }
 }
-
