@@ -178,6 +178,11 @@ io.on('connection', (socket) => {
     io.emit('gameState', gameState);
   });
 
+  socket.on('requestState', () => {
+    socket.emit('gameState', gameState);
+    broadcastOnline();
+  });
+
   socket.on('adminBroadcast', (msg) => {
     io.emit('adminMessage', msg);
   });
